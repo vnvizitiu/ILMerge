@@ -3679,9 +3679,12 @@ namespace System.Compiler{
         for (int i = 0; i < exceptionHandlersCount; i++){
           ExceptionHandler eh = method.ExceptionHandlers[i];
           if (eh == null || eh.HandlerStartBlock == null || (eh.HandlerType != NodeType.Catch && eh.HandlerType != NodeType.Filter)) continue;
-          this.exceptionBlock[eh.HandlerStartBlock.UniqueKey] = eh;
-        }
-      }
+          if (eh.HandlerType == NodeType.Catch)
+            this.exceptionBlock[eh.HandlerStartBlock.UniqueKey] = eh;
+          else
+            this.exceptionBlock[eh.FilterExpression.UniqueKey] = eh;
+                }
+            }
       this.VisitBlock(method.Body);
 
 #if !FxCop
@@ -3701,7 +3704,8 @@ namespace System.Compiler{
       int localVarSigTok = this.methodInfo.localVarSigTok;
       bool fatHeader = codeSize >= 64 || exceptionHandlersCount > 0 || maxStack > 8 || localVarSigTok != 0;
       if (fatHeader) {
-        //Emit fat header
+        //Emit fat header>	System.Compiler.dll!System.Compiler.Ir2md.VisitMethodBody(System.Compiler.Method method) Line 3699	C#
+
         byte header = 0x03;
         if (method.InitLocals) header |= 0x10;
         if (exceptionHandlersCount > 0) header |= 0x08;
@@ -4664,16 +4668,18 @@ namespace System.Compiler{
         sb.Append('&');
         goto done;
       }
-      if (type.Template == null)
-        sb.Append(type.FullName);
-      else{
+      if (type.Template == null){
+        var escapedName = type.FullName.Replace(",", "\\,");
+        sb.Append(escapedName);
+      }else{
         sb.Append(type.Template.FullName);
         sb.Append('[');
-        for (int i = 0, n = type.ConsolidatedTemplateArguments == null ? 0 : type.ConsolidatedTemplateArguments.Count; i < n; i++) {
+        for (int i = 0, n = type.ConsolidatedTemplateArguments == null ? 0 : type.ConsolidatedTemplateArguments.Count; i < n; i++)
+        {
           //^ assert type.ConsolidatedTemplateArguments != null;
           bool isAssemQual = true;
           this.AppendSerializedTypeName(sb, type.ConsolidatedTemplateArguments[i], ref isAssemQual);
-          if (i < n-1) sb.Append(',');
+          if (i < n - 1) sb.Append(',');
         }
         sb.Append(']');
       }
